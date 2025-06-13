@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import pandas as pd
 from typing import List
+import pandas as pd
 from ta.momentum import RSIIndicator
 from ta.trend import MACD
 
@@ -10,7 +10,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace with frontend URL in production
+    allow_origins=["*"],  # For development only
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,6 +18,10 @@ app.add_middleware(
 
 class TradeData(BaseModel):
     prices: List[float]
+
+@app.get("/")
+def read_root():
+    return {"message": "Backend is live!"}
 
 @app.post("/predict")
 def predict_direction(data: TradeData):
