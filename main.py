@@ -1,5 +1,24 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+
+users = {
+    "admin": "1234",
+    "testuser": "demo"
+}
+
+app = FastAPI()
+
+class LoginData(BaseModel):
+    username: str
+    password: str
+
+@app.post("/login")
+def login(data: LoginData):
+    if users.get(data.username) == data.password:
+        return {"message": "Login successful"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 # Mock user data
