@@ -1,54 +1,29 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import pandas as pd
-from typing import List
-from ta.momentum import RSIIndicator
-from ta.trend import MACD
+from pydantic import BaseModel
+import json
 
 app = FastAPI()
 
+# Allow frontend connection
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Use specific domain in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class TradeData(BaseModel):
-    prices: List[float]
+# Fake users database
+with open("users.json") as f:
+    users = json.load(f)
 
-@app.get("/")
-def root():
-    return "OK"
+class LoginData(BaseModel):
+    username: str
+    password: str
 
-@app.post("/predict")
-def predict_direction(data: TradeData):
-    prices = data.prices
-    if len(prices) < 26:
-        return {"error": "Please send at least 26 price values."}
-
-    df = pd.DataFrame(prices, columns=["close"])
-    df["rsi"] = RSIIndicator(close=df["close"]).rsi()
-    df["macd"] = MACD(close=df["close"]).macd()
-    df.dropna(inplace=True)
-
-    if df.empty:
-        return {"error": "Not enough valid data after computing indicators."}
-
-    rsi = df["rsi"].iloc[-1]
-    macd = df["macd"].iloc[-1]
-
-    if rsi < 30 and macd > 0:
-        decision = "BUY"
-    elif rsi > 70 and macd < 0:
-        decision = "SELL"
-    else:
-        decision = "HOLD"
-
-    return {
-        "rsi": round(float(rsi), 2),
-        "macd": round(float(macd), 4),
-        "direction": decision
-    }
+@app.post("/login")
+def login(data: LoginData):
+    if data.username in users and users[data.username] == data.password:
+        return {"status": "success"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
