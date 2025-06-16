@@ -1,38 +1,58 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import asyncio
+import websockets
+import json
 
-# ✅ Define hardcoded users
-users = {
-    "admin": "1234",
-    "testuser": "demo"
-}
-
-# ✅ Create FastAPI app
 app = FastAPI()
 
-# ✅ Enable CORS
+# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, use your actual frontend domain
+    allow_origins=["*"],  # change this to your frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Root route to stop 404 at `/`
-@app.get("/")
-def read_root():
-    return {"message": "Backend is working!"}
+# Users stored locally
+users = {
+    "admin": "1234",
+    "testuser": "demo"
+}
 
-# ✅ Define input format
+# Login data format
 class LoginData(BaseModel):
     username: str
     password: str
 
-# ✅ Login endpoint
+# Deriv token (your real or demo token)
+DERIV_TOKEN = "FzWNtYDjEMDROSp"  # Replace this with the correct one
+DERIV_WS = "wss://ws.deriv.com/websockets/v3"
+
+# Connect to Deriv API and get balance
+async def get_deriv_balance():
+    try:
+        async with websockets.connect(DERIV_WS) as ws:
+            await ws.send(json.dumps({ "authorize": DERIV_TOKEN }))
+            auth_response = await ws.recv()
+
+            # Get balance after auth
+            await ws.send(json.dumps({ "balance": 1 }))
+            balance_response = await ws.recv()
+
+            return json.loads(balance_response)
+    except Exception as e:
+        return {"error": str(e)}
+
+# /login endpoint
 @app.post("/login")
-def login(data: LoginData):
+async def login(data: LoginData):
     if users.get(data.username) == data.password:
-        return {"message": "Login successful"}
+        balance_data = await get_deriv_balance()
+        return {
+            "message": "Login successful",
+            "deriv_balance": balance_data
+        }
     raise HTTPException(status_code=401, detail="Invalid credentials")
