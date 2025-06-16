@@ -11,21 +11,26 @@ users = {
 # ✅ Create FastAPI app
 app = FastAPI()
 
-# ✅ Enable CORS for frontend connection
+# ✅ Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to your frontend domain in production
+    allow_origins=["*"],  # In production, use your actual frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Define login input format
+# ✅ Root route to stop 404 at `/`
+@app.get("/")
+def read_root():
+    return {"message": "Backend is working!"}
+
+# ✅ Define input format
 class LoginData(BaseModel):
     username: str
     password: str
 
-# ✅ /login endpoint
+# ✅ Login endpoint
 @app.post("/login")
 def login(data: LoginData):
     if users.get(data.username) == data.password:
